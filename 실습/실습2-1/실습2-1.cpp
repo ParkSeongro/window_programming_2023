@@ -7,7 +7,7 @@
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
-LPCTSTR lpszWindowName = L"windows programming 1";
+LPCTSTR lpszWindowName = L"실습 2-1";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam,
                          LPARAM lParam);
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
