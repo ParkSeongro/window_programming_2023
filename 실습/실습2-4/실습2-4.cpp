@@ -45,24 +45,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   PAINTSTRUCT ps;
   HDC hDC;
   SIZE size;
-  static int count = 0;
-  static int i = 0;
+  static int count;
+  int i;
   static TCHAR str[100];
-  static INT num[10];
-  TCHAR* ptr = nullptr;
-  int x, y;
-  int table;
-  int operand;
+  TCHAR lpOut[15];
+  int num[4];
+  char cStr[100];
+  char* ptr;
+  static int x, y, table, operand;
+  static bool isEnter;
   
   switch (uMsg) {
     case WM_CREATE:
       CreateCaret(hWnd, NULL, 5, 15);  //--- 캐럿 만들기
-      ShowCaret(hWnd);                 //--- 빈 화면에 캐럿 표시 count = 0;
+      ShowCaret(hWnd);  //--- 빈 화면에 캐럿 표시 count = 0;
+      count = 0;
       break;
 
-      case WM_CHAR:
-      str[count++] = wParam;  //--- 문자저장 후 인덱스 증가
-      str[count] = '\0';      //--- 문자열은 null(‘\0’)로 끝남
+    case WM_CHAR:
+      if (wParam == VK_BACK) {
+        if (count > 0) str[--count] = '\0';
+      } else if (wParam == VK_RETURN) {
+        if (str[0] == L'0') PostQuitMessage(0); 
+        isEnter = true;
+        WideCharToMultiByte(CP_ACP, 0, str, lstrlen(str), cStr, 100, NULL,
+                            NULL); // strtok() 함수 사용을 위해 TCHAR -> CHAR 변환
+        ptr = strtok(cStr, " ");
+        i = 0;
+        while (ptr != NULL) {
+          num[i++] = atoi(ptr);
+          ptr = strtok(NULL, " ");
+        }
+        x = num[0];
+        y = num[1];
+        table = num[2];
+        operand = num[3];
+        count = 0;
+        str[0] = '\0';
+      }
+      else {
+        str[count++] = wParam;  //--- 문자저장 후 인덱스 증가
+        str[count] = '\0';      //--- 문자열은 null(‘\0’)로 끝남
+      }  
       InvalidateRect(hWnd, NULL, TRUE);
       break;
     case WM_PAINT:
@@ -70,18 +94,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
       GetTextExtentPoint32(hDC, str, lstrlen(str), &size);  //--- 문자열 길이 알아내기
       TextOut(hDC, 0, 0, str, lstrlen(str));
       SetCaretPos(size.cx, 0);  //--- 캐럿 위치하기
-      ptr = (TCHAR*)strtok((char*)str, " ");
-      while (ptr != NULL) {
-        num[i++] = atoi((const char*)ptr);
-        ptr = (TCHAR*)strtok(NULL, " ");
+      if (isEnter == true) {
+        for (int i = 0; i < operand; ++i) {
+          wsprintf(lpOut, L"%d x %d = %d", table, i + 1, table * (i + 1));
+          y += 15;
+          TextOut(hDC, x, y, lpOut, lstrlen(lpOut));
+        }
+        isEnter == false;
       }
-      x = num[0];
-      y = num[1];
-      table = num[2];
-      operand = num[3];
-      EndPaint(hWnd, &ps);
-       if (wParam == VK_RETURN) {
-        for (int i = 0; i < operand; ++i) TextOut(hDC, x,y)
+          EndPaint(hWnd, &ps);
       break;
 
 
