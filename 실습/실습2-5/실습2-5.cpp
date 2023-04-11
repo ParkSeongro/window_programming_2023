@@ -9,18 +9,6 @@ LPCTSTR lpszWindowName = L"실습 2-5";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam,
                          LPARAM lParam);
 
-class StrPos {
- public:
-  int x, y;
-  StrPos() : x(0), y(0) {}
-};
-
-class CaretPos {
- public:
-  int x, y;
-  CaretPos() : x(1), y(0) {}
-};
-
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpszCmdParam, int nCmdShow) {
@@ -54,66 +42,69 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+  const int max_row = 10; // 30x10
+  const int max_col = 30;
   PAINTSTRUCT ps;
   HDC hDC;
   SIZE size;
-  static TCHAR str[1000];
-  static int count;
-  static bool isEnter;
-  static StrPos strPos;
-  static CaretPos caretPos;
+  static TCHAR str[max_row][max_col + 1];
   static int row;
+  static int col;
 
   switch (uMsg) {
     case WM_CREATE:  
-      count = 0;
-      row = 0;
-      isEnter = false;
-      CreateCaret(hWnd, NULL, 5,
-                  15);  //--- 캐럿 만들기
+     row = 0;
+      col = 0;
+     CreateCaret(hWnd, NULL, 5, 15);
       ShowCaret(hWnd);
       break;
 
     case WM_CHAR:
-      if (wParam == VK_BACK) {
-        if (count > 0) --count;
-      } else if (wParam == VK_RETURN) {
-        count = 0;
-        ++row;
-        strPos.y += 15;
-        caretPos.y += 15;
-      } else {
-        if (count == 30) {
-          count = 0;
-          ++row;
-          strPos.y += 15;
-          caretPos.y += 15;
-        }        
-        if (row >= 10) {
-          count = 0;
-          strPos.y = 0;
-          caretPos.y = 0;
-          row = 0;
-        }
-        str[count++] = wParam;
-      }     
-      str[count] = '\0';
-      InvalidateRect(hWnd, NULL, false);
+      switch (wParam) {
+        case VK_BACK:
+
+          if (col > 0) {
+            --col;
+            /*for (int i = col; i < lstrlen(str[row]); ++i)
+              str[row][i] = str[row][i + 1];     */
+
+            if (col == 0 && row > 0) {
+              --row;
+              col = max_col;
+            }
+            break;
+            case VK_RETURN:
+              ++row;
+              if (row == max_row) row = 0;
+              col = 0;
+              break;
+            default:
+              if (col == max_col) {
+                ++row;
+                col = 0;
+              }
+              if (row == max_row) row = 0;
+              str[row][col++] = wParam;
+              break;
+          }
+      }
+          
+      InvalidateRect(hWnd, NULL, TRUE);
       break;
 
     case WM_PAINT:
       hDC = BeginPaint(hWnd, &ps);
-      GetTextExtentPoint32(hDC, str, lstrlen(str),
-                           &size);  //--- 문자열 길이 알아내기
+      GetTextExtentPoint32(hDC, str[row], col, &size);
+      SetCaretPos(size.cx, row * 16);
+      for (int i = 0; i < max_row; ++i)        
+        TextOut(hDC, 0, i * 16, str[i], lstrlen(str[i]));
       
-      TextOut(hDC, 0, strPos.y, str, lstrlen(str));
-      SetCaretPos(size.cx, caretPos.y);
       EndPaint(hWnd, &ps);
       break;
 
     case WM_DESTROY:
-      HideCaret(hWnd);  //--- 캐럿 숨기기
-      DestroyCaret();   //--- 캐럿 삭제하기
+      HideCaret(hWnd);
+      DestroyCaret();
       PostQuitMessage(0);
       break;
   }

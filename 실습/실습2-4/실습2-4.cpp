@@ -100,7 +100,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
           y += 15;
           TextOut(hDC, x, y, lpOut, lstrlen(lpOut));
         }
-        isEnter == false;
+        isEnter = false;
       }
           EndPaint(hWnd, &ps);
       break;
