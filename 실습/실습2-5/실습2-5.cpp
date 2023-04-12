@@ -42,53 +42,51 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-  const int max_row = 10; // 30x10
-  const int max_col = 30;
+  const int row_num = 5;
+  const int col_num = 5 + 1;
+  const int max_row = row_num - 1;
+  const int max_col = col_num - 1;
   PAINTSTRUCT ps;
   HDC hDC;
   SIZE size;
-  static TCHAR str[max_row][max_col + 1];
+  static TCHAR str[row_num][col_num];
   static int row;
   static int col;
 
   switch (uMsg) {
-    case WM_CREATE:  
-     row = 0;
+    case WM_CREATE:
+      row = 0;
       col = 0;
-     CreateCaret(hWnd, NULL, 5, 15);
+      CreateCaret(hWnd, NULL, 5, 15);
       ShowCaret(hWnd);
       break;
 
     case WM_CHAR:
       switch (wParam) {
         case VK_BACK:
-
-          if (col > 0) {
+          if (col > 0)
             --col;
-            /*for (int i = col; i < lstrlen(str[row]); ++i)
-              str[row][i] = str[row][i + 1];     */
-
-            if (col == 0 && row > 0) {
-              --row;
-              col = max_col;
-            }
-            break;
-            case VK_RETURN:
-              ++row;
-              if (row == max_row) row = 0;
-              col = 0;
-              break;
-            default:
-              if (col == max_col) {
-                ++row;
-                col = 0;
-              }
-              if (row == max_row) row = 0;
-              str[row][col++] = wParam;
-              break;
+          else if (col == 0 && row > 0) {
+            --row;
+            col = lstrlen(str[row]);
           }
-      }
-          
+          break;
+        case VK_RETURN:
+          if (row > max_row)
+            row = 0;
+          else
+            ++row;
+          col = 0;
+          break;
+        default:
+          if (col == max_col) {
+            ++row;
+            col = 0;
+          }
+          if (row == max_row) row = 0;
+          str[row][col++] = wParam;
+          break;
+      }       
       InvalidateRect(hWnd, NULL, TRUE);
       break;
 
