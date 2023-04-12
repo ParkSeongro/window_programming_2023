@@ -42,8 +42,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-  const int row_num = 5;
-  const int col_num = 5 + 1;
+  const int row_num = 10;
+  const int col_num = 30 + 1;
   const int max_row = row_num - 1;
   const int max_col = col_num - 1;
   PAINTSTRUCT ps;

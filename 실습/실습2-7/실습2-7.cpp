@@ -6,7 +6,7 @@
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
-LPCTSTR lpszWindowName = L"실습 2-7 ";
+LPCTSTR lpszWindowName = L"실습 2-7, 2-8";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam,
                          LPARAM lParam);
 
@@ -45,22 +45,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {  
-  const int row_num = 5; 
-  const int col_num = 5 + 1;
+  const int row_num = 10; 
+  const int col_num = 80 + 1;
   const int max_row = row_num - 1;
   const int max_col = col_num - 1;
   PAINTSTRUCT ps;
   HDC hDC;
   SIZE size;
-  static TCHAR str[row_num][col_num];
+  static TCHAR str[100][100];
   static int row;
   static int col;
   static bool is_upper;
+  static bool is_insert;
+  static bool is_password;
+  static int y;
 
   switch (uMsg) {
     case WM_CREATE:
       row = col = 0;
       is_upper = false;
+      is_insert = false;
+      is_password = false;
+      y = 0;
       CreateCaret(hWnd, NULL, 5, 15);
       ShowCaret(hWnd);
       break;
@@ -82,7 +88,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             ++row;
           col = 0;
           break;
-
         case VK_ESCAPE:
           row = col = 0;
           for (int j = 0; j < max_col; ++j)
@@ -100,12 +105,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             col = 0;
           }
           if (row == max_row) row = 0;
-          str[row][col++] = wParam;
-            InsertStrElem(str[row], wParam, col++);
+          if (is_insert && lstrlen(str[row]) < max_col) InsertStrElem(str[row], wParam, col);
+          else {
+              if (is_upper) str[row][col] = toupper(wParam);
+              else
+                  str[row][col] = wParam;
+              if (is_password) str[row][col] = L'*';
+          }
+              ++col;          
           break;
       }
       InvalidateRect(hWnd, NULL, TRUE);
       break;
+
     case WM_KEYDOWN:
       switch (wParam) {
         case VK_LEFT:
@@ -120,14 +132,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case VK_DOWN:
           if (row < max_row) ++row;
           break;
-        /*case VK_F1:
-          if (!is_upper) {
-            is_upper == true;
-            str[row][col] = toupper(str[row][col]);
-          } else {
-            is_upper == false;
-            str[row][col] = tolower(str[row][col]);
-            break;*/
+        case VK_F1:
+            if (is_upper) is_upper = false;
+            else is_upper = true;
+            break;
+        case VK_F2:
+            if (is_password) is_password = false;
+            else is_password = true;
+            break;
+        case VK_F3:
+            if (y > 0)
+                y = 0;
+            else
+                y += 16;
+            break;
+        case VK_F4:
+            for (int i = 0; i < lstrlen(str[row]); ++i)
+                str[row][i] = '\0';
+            break;
         case VK_HOME:
           col = 0;
           break;
@@ -139,17 +161,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
           col = lstrlen(str[row]);
           break;
         case VK_INSERT:
+            if (is_insert) is_insert = false;
+            else is_insert = true;
           break;
+        case VK_DELETE:
+            // 음..
+            break;
+        case VK_PRIOR:
+            for (int j = 0; j < max_row; ++j)
+            {
+                for (int i = 0; i < max_col; ++i)
+                {
+                    if (str[j][i] == L' ') DeleteStrElem(str[j], i);
+                }
+            }
+            break;
             default:
               break;
           }
+      InvalidateRect(hWnd, NULL, TRUE);
+      break;
+
         case WM_PAINT:
           hDC = BeginPaint(hWnd, &ps);
           GetTextExtentPoint32(hDC, str[row], col, &size);
           SetCaretPos(size.cx, row * 16);
           for (int i = 0; i < row_num; ++i)
-            TextOut(hDC, 0, i * 16, str[i], lstrlen(str[i]));
-
+            TextOut(hDC, 0, i * 16 + y, str[i], lstrlen(str[i]));
           EndPaint(hWnd, &ps);
           break;
 
@@ -160,8 +198,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
           break;
       }
   
-  return DefWindowProc(hWnd, uMsg, wParam,
-                       lParam);  //--- 위의 세 메시지 외의 나머지 메시지는 OS로
+      return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
  void InsertStrElem(TCHAR* str, const TCHAR& c, const int& index) {
