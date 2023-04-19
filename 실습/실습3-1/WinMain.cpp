@@ -1,6 +1,8 @@
 ﻿#include <stdlib.h>
 #include <time.h>
 #include <windows.h>
+#include <vector>
+#include <algorithm>
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
@@ -12,133 +14,182 @@ const int window_height{800};  // 윈도우 세로
 const int dim{40};             // 칸의 수
 const int size{18};            // 칸 사이즈
 const int max_food{20};        // 최대 먹이 수
-enum Status {
-  EMPTY,
-  CIRCLE,
-  FOOD
-};  // 칸 상태 = 0: 빈 공간, 1: 원이 있는 자리 2: 먹이가 있는 자리
-enum MovementType {
-  DEFAULT,
-  NONE,
-  LEFTNRIGHT,
-  TOPNBOTTOM,
-  TRIANGLE
-};  // 이동 유형
-int map[dim][dim];
+enum MovementType { DEFAULT, NONE, LEFTNRIGHT, TOPNBOTTOM, TRIANGLE }; // 이동 유형
 
-class Circle {
+class Food {
  private:
-  int x_, y_;  // 보드 상의 (x, y) 칸
+  int x_, y_;
   COLORREF color_;
 
  public:
-  static int nCircles;  // 원의 개수
-  Circle() : x_{0}, y_{0}, color_{RGB(255, 255, 0)} { ++nCircles; }
-  Circle(const int& x, const int& y, const COLORREF& color)
-      : x_{x}, y_{y}, color_{color} {}
-  ~Circle() {}
-  int get_x() { return x_; }
-  int get_y() { return y_; }
+  Food()
+      : x_{rand() % dim},
+        y_{rand() % dim},
+        color_{RGB(rand() % 256, rand() % 256, rand() % 256)} {
+  }
+  ~Food() { }
+  int get_x() const { return x_; }
+  int get_y() const { return y_; }
+  COLORREF get_color() const { return color_; }
   void set_x(const int& x) { x_ = x; }
   void set_y(const int& y) { y_ = y; }
-  void set_color(const COLORREF& color) { color_ = color; }
-  void Move(const int& move_type = DEFAULT);
-  bool isCrashed();
-  void Eat();
-  void Draw(const HDC& hDC);
+  void setColor(const COLORREF& color) { color_ = color; }
+  void Draw(HDC hDC) const;
 };
 
 
-int Circle::nCircles = 0;
-
-void Circle::Move(const int& movement_type) {
-  switch (movement_type) {
-    case DEFAULT:
-      if (y_ % 2 == 0) {
-        ++x_;
-        if (x_ == dim) {
-          --x_;
-          ++y_;
-        }
-      } else {
-        --x_;
-        if (x_ < 0) {
-          ++x_;
-          ++y_;
-        }
-      }
-      if (y_ == dim) {
-        x_ = 0;
-        y_ = 0;
-      }
-      break;
-    case NONE:
-      break;
-    case LEFTNRIGHT:
-      break;
-    case TOPNBOTTOM:
-      break;
-    case TRIANGLE:
-      break;
-  }
-}
-
-bool Circle::isCrashed() { return map[y_][x_] == FOOD; }
-
-void Circle::Eat() { map[y_][x_] = CIRCLE; }
-
-void Circle::Draw(const HDC& hDC) {
-  HPEN hPen, oldPen;
+void Food::Draw(HDC hDC) const {
   HBRUSH hBrush, oldBrush;
 
   hBrush = CreateSolidBrush(color_);
   oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
-  Ellipse(hDC, x_ * size, y_ * size, (x_ + 1) * size, (y_ + 1) * size);
+  Rectangle(hDC, x_ * size, y_ * size, (x_ + 1) * size, (y_ + 1) * size);
   SelectObject(hDC, oldBrush);
   DeleteObject(hBrush);
 }
 
-class Food {
+class Circle {
  private:
-  int x_, y_;  // 보드 상의 (x, y) 칸
+  int x_, y_;
+  int x_dir_, y_dir_;
+  int movement_;
   COLORREF color_;
 
  public:
-  static int nFood_;
-  Food()
-      : x_{rand() % dim},
-        y_{rand() % dim},
-        color_{RGB(rand() % 256, rand() % 256, rand() % 256)} {}
-  Food(const int& x, const int& y, const COLORREF color)
-      : x_{x}, y_{y}, color_{color} {}
-  ~Food() {}
-  int get_x() { return x_; }
-  int get_y() { return y_; }
+  Circle()
+      : x_{0},
+        y_{0},
+        x_dir_{1},
+        y_dir_{1},
+        movement_{rand() % 4 + 1},
+        color_{RGB(255, 255, 0)} {}
+  Circle(const int& movement) : movement_(movement) {
+   x_ = 0;
+   y_ = 0;
+   x_dir_ = 1;
+   y_dir_ = 1;
+   color_ = RGB(255, 255, 0);
+  }
+  Circle(const Food& food)
+      : x_{food.get_x()},
+        y_{food.get_y()},
+        x_dir_{1},
+        y_dir_{1},
+        movement_{rand() % 4 + 1},
+        color_{food.get_color()} {}
+  ~Circle() {}
+  int get_x() const { return x_; }
+  int get_y() const { return y_; }
+  int get_x_dir() const { return x_dir_; }
+  int get_movement() const { return movement_; }
   void set_x(const int& x) { x_ = x; }
   void set_y(const int& y) { y_ = y; }
-  bool isCrashed();
-  void Eaten();
-  void setColor(const COLORREF& color) { color_ = color; }
-  void Draw(HDC hDC);
+  void set_movement(const int& movement) { movement_ = movement; }
+  void set_color(const COLORREF& color) { color_ = color; }
+  void Move();
+  bool isCrashed(const Food& food) const;
+  void Join(Circle& c) const;
+  void Draw(const HDC& hDC) const;
 };
 
-int Food::nFood_ = 0;
+void Circle::Move() { 
+  switch (movement_) {
+      case DEFAULT:
+        x_ += x_dir_;
+        if (x_ == dim) {
+          --x_;
+          ++y_;
+          x_dir_ = -1;
+        }
+        if (x_ < 0) {
+          ++x_;
+          ++y_;
+          x_dir_ = 1;
+        }
+        if (y_ == dim) {
+          y_ = 0;
+          x_ = 0;
+        }
+        break;
+      case NONE:
+        break;
+      case LEFTNRIGHT:
+        x_ += x_dir_;
+        if (x_ >= dim) {
+          --x_;
+          x_dir_ = -1;
+        }
+        if (x_ < 0) {
+          ++x_;
+          x_dir_ = 1;
+        }
+        break;
+      case TOPNBOTTOM:
+        y_ += y_dir_;
+        if (y_ >= dim) {
+          --y_;
+          y_dir_ = -1;
+        }
+        if (y_ < 0) {
+          ++y_;
+          y_dir_ = 1;
+        }
+        break;
+      case TRIANGLE:
+        x_ += x_dir_;
+        y_ += y_dir_;
+        if (x_ >= dim ) {
+          --x_;         
+          y_dir_ = 0;
+          x_dir_ = -1;
+        }
 
-bool Food::isCrashed() { return map[y_][x_] == CIRCLE; }
-void Food::Eaten() { --nFood_; }
+        if (y_ < 0) {
+          ++y_;
+          y_dir_ = 1;
+          x_dir_ = 1;
+        }
 
-void Food::Draw(HDC hDC) {
-  HPEN hPen, oldPen;
+        if (x_ < 0) {
+          ++x_;
+          x_dir_ = 1;
+          y_dir_ = -1;
+        }
+
+        if (y_ >= dim) {
+          --y_;
+          y_dir_ = -1;
+          x_dir_ = -1;
+        }
+
+        break;
+    }
+  }
+
+bool Circle::isCrashed(const Food& food) const {
+  return x_ == food.get_x() && y_ == food.get_y();
+}
+
+void Circle::Join(Circle& c) const {
+  if ((c.get_x() - 1 == x_ || c.get_x() + 1 == x_) && c.get_y() == y_) {
+      c.set_x(x_ - x_dir_);
+      c.set_y(y_);
+      c.set_movement(movement_);
+  }
+  if((c.get_y() - 1 == y_ || c.get_y() + 1 == y_) && c.get_x() == x_) {
+      c.set_x(x_ - x_dir_);
+      c.set_y(y_);
+      c.set_movement(movement_);
+  }
+}
+
+
+void Circle::Draw(const HDC& hDC) const {  
   HBRUSH hBrush, oldBrush;
-
-  hPen = CreatePen(PS_SOLID, 5, color_);
-  oldPen = (HPEN)SelectObject(hDC, hPen);
   hBrush = CreateSolidBrush(color_);
   oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
-  Rectangle(hDC, x_ * size, y_ * size, (x_ + 1) * size, (y_ + 1) * size);
-  SelectObject(hDC, oldPen);
+  Ellipse(hDC, x_ * size, y_ * size, (x_ + 1) * size, (y_ + 1) * size);
   SelectObject(hDC, oldBrush);
-  DeleteObject(hPen);
   DeleteObject(hBrush);
 }
 
@@ -157,7 +208,7 @@ void Canvas::Draw(const HDC& hDC) {
   hPen = CreatePen(PS_SOLID, 1, color_);
   oldPen = (HPEN)SelectObject(hDC, hPen);
   for (int i = 0; i <= dim; ++i) {
-    MoveToEx(hDC, i * dim, 0, NULL);
+    MoveToEx(hDC, i * size, 0, NULL);
     LineTo(hDC, i * size, size * dim);
   }
   for (int i = 0; i <= dim; ++i) {
@@ -202,44 +253,54 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     PAINTSTRUCT ps;
     HDC hDC;
-    Canvas canvas;    
-    Circle* pCircles[max_food + 1];   
-    Food* pFood[max_food];
-
-    srand((unsigned int)time(NULL));
+    Canvas canvas;
+    static Circle main_circle{DEFAULT};
+    static std::vector<Circle> tail_circles;
+    static std::vector<Food> food;
+   // static int movement[3];
 
     switch (uMsg) {
-        case WM_CREATE:
-          pCircles[0] = new Circle; // 주인공 원 추가
-          for (int i = 0; i < max_food; ++i) pFood[i] = new Food; // 먹이 추가
-          SetTimer(hWnd, 1, 40, NULL);
-          break;
+        case WM_CREATE:        
+        for (int i = 0; i < max_food; ++i) food.push_back({});
+        SetTimer(hWnd, 1, 50, NULL);
+        break;
+
+        case WM_KEYDOWN:
+        break;
 
         case WM_PAINT:
-          hDC = BeginPaint(hWnd, &ps);          
-          canvas.Draw(hDC); // 모든 것을 그린다
+        hDC = BeginPaint(hWnd, &ps);
+        canvas.Draw(hDC);
+        main_circle.Draw(hDC);
+        for (int i = 0; i < tail_circles.size(); ++i) tail_circles[i].Draw(hDC);        
+          for (const auto& e : food) e.Draw(hDC);
           EndPaint(hWnd, &ps);
           break;
 
-        case WM_TIMER:
-          pCircles[0]->Move();
-          if (pCircles[0]->isCrashed()) {
-        pCircles[0]->Eat();
-        pCircles[1] = new Circle;
-       
-          };
-          for (int i = 1; i < Circle::nCircles; ++i) {
-        pCircles[i]->Move(rand() % 4 + 1);
-        if (pCircles[i]->isCrashed()) pCircles[i]->Eat();
-        pCircles[Circle::nCircles] = new Circle;
+          case WM_TIMER:
+            main_circle.Move();
+          for (int j = 0; j < food.size(); ++j) {
+          if (main_circle.isCrashed(food[j])) {
+            tail_circles.push_back(food[j]);
+            food.erase(food.begin() + j);
+            main_circle.Join(tail_circles[j]);
           }
-          InvalidateRect(hWnd, NULL, TRUE);
-          break;
+          }
+          
+          for (int i = 0; i < tail_circles.size(); ++i) {
+          tail_circles[i].Move();
+          for (int j = 0; j < tail_circles.size(); ++j) {
+            if (i > 0) {
+              tail_circles[i].Join(tail_circles[j]);
+            }
+          }
+          }                     
+            InvalidateRect(hWnd, NULL, TRUE);
+            break;
 
-        case WM_DESTROY:
-          for (int i = 0; i < Food::nFood_; ++i) delete pFood[i];
-          PostQuitMessage(0);
-          break;
+          case WM_DESTROY:            
+            PostQuitMessage(0);
+            break;
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
-}
