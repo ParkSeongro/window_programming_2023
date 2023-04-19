@@ -145,7 +145,7 @@
     <ClInclude Include="실습3-1.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="실습3-1.cpp" />
+    <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="실습3-1.rc" />
