@@ -55,6 +55,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
  static RECT winRect;
   PAINTSTRUCT ps;
   HDC hDC; // 3x10
+  TCHAR str[30];
   static Bar bar{300, 500, 0, 80, 20, RGB(128, 128, 128)};
   static Ball ball{310, 400, 20, 1, -1, RGB(225, 225, 0)};
   static Block* pBlocks[50][50];
@@ -110,9 +111,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             } else {
               KillTimer(hWnd, 0);
               KillTimer(hWnd, 1);
+              hDC = GetDC(hWnd);
+              wsprintf(str, L"colored: %d, destroyed: %d", Block::nCrashed,
+                       row * col - Block::nBlocks);
+              TextOut(hDC, 300, 300, str, lstrlen(str));
+              ReleaseDC(hWnd, hDC);
               isPaused = true;
             }
           }
+         
           break;
         case 'n':         
           // 초기화
@@ -152,6 +159,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                      pBlocks[i][j]->setHeight(pBlocks[i][j]->getHeight() - 10);
                    pBlocks[i][j]->setWidth(pBlocks[i][j]->getWidth() - 10);
                      pBlocks[i][j]->setIsCrashed(true);
+                   ++Block::nCrashed;
                  }
                    else {
                      DeleteBlock(pBlocks[i][j]);

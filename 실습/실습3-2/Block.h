@@ -9,7 +9,7 @@ class Block {
   void Clip();
   
  public:
-  static int nBlocks;
+  static int nBlocks, nCrashed;
   Block() { ++nBlocks; }
   Block(int x, int y, int xdir, int width, int height, const COLORREF& color, bool isCrashed)
       : x_{x},
@@ -21,9 +21,12 @@ class Block {
         isCrashed_{isCrashed} {
     ++nBlocks;
     min_ = x;
-    max_ = x + 200;
+    max_ = x + 150;
   }
-  ~Block() { --nBlocks; }
+  ~Block() {
+    --nBlocks;
+    --nCrashed;
+  }
   int getx() const { return x_; }
   int gety() const { return y_; }
   int getxdir() const { return xdir_; }
