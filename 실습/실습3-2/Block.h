@@ -2,12 +2,12 @@
 #include <Windows.h>
 
 class Block {
+  
+  void Clip();
   int x_, y_, xdir_, width_, height_, min_, max_;
   COLORREF color_;
   bool isCrashed_;
 
-  void Clip();
-  
  public:
   static int nBlocks, nCrashed;
   Block() { ++nBlocks; }
@@ -25,7 +25,6 @@ class Block {
   }
   ~Block() {
     --nBlocks;
-    --nCrashed;
   }
   int getx() const { return x_; }
   int gety() const { return y_; }

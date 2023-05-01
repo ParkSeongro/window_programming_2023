@@ -18,7 +18,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam,
 bool BalltoBlock(const Ball& ball, const Block& block);
 bool BalltoBar(const Ball& ball, const Bar& bar);
 void DeleteBlock(Block* block);
-
+bool InBar(const Bar& bar, int mx, int my);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpszCmdParam, int nCmdShow) {
@@ -65,7 +65,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   static bool isPaused;
   static bool isStarted;
   static bool isCrashed;
-  //static int i_index, j_index;
+  int mx, my;
+  static bool selection;
 
   switch (uMsg) {
     case WM_CREATE:
@@ -73,6 +74,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
       isStarted = false;
       isPaused = false;
       isCrashed = false;
+      selection = false;
       GetClientRect(hWnd, &winRect);      
       for (int j = 0; j < row; ++j)
         for (int i = 0; i < col; ++i)
@@ -122,11 +124,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
          
           break;
         case 'n':         
-          // 초기화
+            /*static Bar bar{ 300, 500, 0, 80, 20, RGB(128, 128, 128) };
+            static Ball ball{ 310, 400, 20, 1, -1, RGB(225, 225, 0) };
+            static Block* pBlocks[50][50];*/
+            bar.x_ = 300; bar.y_ = 500; bar.dir_ = 0; bar.width_ = 80; bar.height_ = 20;
+            bar.color_ = RGB(128, 128, 128);
+            ball.x_ = 310; ball.y_ = 400; ball.diameter_ = 20; ball.xdir_ = 1; ball.ydir_ = -1;
+            ball.color_ = RGB(225, 225, 0);
+            ball_elapse = 1;
+            isStarted = false;
+            isPaused = false;
+            isCrashed = false;
+            for (int i = 0; i < row; ++i)
+                for (int j = 0; j < col; ++j) {
+                    if (pBlocks[i][j] != nullptr) delete pBlocks[i][j];
+                }
+            for (int j = 0; j < row; ++j)
+                for (int i = 0; i < col; ++i)
+                    pBlocks[j][i] = new Block{ 10 + i * 60, 30 + j * 30,       1, 60,                                               30,          RGB(255, 255, 255), false };
+            KillTimer(hWnd, 0);
+            KillTimer(hWnd, 1);
+            InvalidateRgn(hWnd, NULL, TRUE);
           break;
         case 'q':
           for (int i = 0; i < row; ++i)
-            for (int j = 0; i < col; ++j) {
+            for (int j = 0; j < col; ++j) {
               if (pBlocks[i][j] != nullptr) delete pBlocks[i][j];
             }
           PostQuitMessage(0);
@@ -134,9 +156,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
       }
       break;
     case WM_LBUTTONUP:
+        selection = FALSE;
+        bar.x_ = 300;
+       // bar.y_ = 500;
+        InvalidateRect(hWnd, NULL, TRUE);
       break;
     case WM_LBUTTONDOWN:
+        if (isStarted && !isPaused) {
+            mx = LOWORD(lParam);
+            my = HIWORD(lParam);
+            if (InBar(bar, mx, my))
+                selection = true;
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
       break;
+
+    case WM_MOUSEMOVE:
+        mx = LOWORD(lParam);
+        my = HIWORD(lParam);
+                if (selection)
+                {
+                    bar.x_ = mx;
+                    // bar.y_ = my;
+                    bar.Clip(800);
+                    InvalidateRect(hWnd, NULL, TRUE);
+                }
+        break;
 
     case WM_TIMER:
       switch (wParam) {
@@ -163,7 +208,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                  }
                    else {
                      DeleteBlock(pBlocks[i][j]);
-                     pBlocks[i][j] = nullptr;                 
+                     pBlocks[i][j] = nullptr;    
+                     --Block::nCrashed;
                    }
                   ball.setydir(-ball.getydir());
                 }
@@ -171,15 +217,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
           if (BalltoBar(ball, bar)) ball.setydir(-ball.getydir());         
           break;   
-        case 2:
-         /* if (pBlocks[i_index][j_index]->getWidth() > 0)
-            pBlocks[i_index][j_index]->setWidth(
-                pBlocks[i_index][j_index]->getWidth() - 5);
-          if (pBlocks[i_index][j_index]->getHeight() > 0)
-            pBlocks[i_index][j_index]->setHeight(
-                pBlocks[i_index][j_index]->getHeight() - 5);   */     
-          break;
-
       }
       InvalidateRgn(hWnd, NULL, TRUE);
       break;
@@ -198,7 +235,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_DESTROY:
       for (int i = 0; i < row; ++i)
-        for (int j = 0; i < col; ++j) {
+        for (int j = 0; j < col; ++j) {
           if (pBlocks[i][j] != nullptr) delete pBlocks[i][j];
         }
       PostQuitMessage(0);
@@ -224,3 +261,8 @@ bool BalltoBar(const Ball& ball, const Bar& bar) {
 void DeleteBlock(Block* block) { delete block; }
 
 bool isDone() { return !Block::nBlocks; }
+
+bool InBar(const Bar& bar, int mx, int my) {
+    return (mx < bar.x_ + bar.width_) && (my < bar.y_ + bar.width_)
+        && (mx > bar.x_) && (my > bar.y_);
+}

@@ -1,11 +1,12 @@
 #pragma once
 #include <Windows.h>
 class Ball {
-  int x_, y_, diameter_, xdir_, ydir_;
-  COLORREF color_;
-  void Clip(int max_x, int max_y);
+  
 
  public:
+     int x_, y_, diameter_, xdir_, ydir_;
+     COLORREF color_;
+     void Clip(int max_x, int max_y);
   Ball() {}
   Ball(int x, int y, int diameter, int xdir, int ydir, const COLORREF& color)
       : x_{x},

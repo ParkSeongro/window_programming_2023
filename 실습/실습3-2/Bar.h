@@ -2,11 +2,12 @@
 #include <windows.h>
 
 class Bar {
-  int x_, y_, width_, height_, dir_;
-  COLORREF color_;
-  void Clip(int max_x);
+  
 
  public:
+     int x_, y_, width_, height_, dir_;
+     COLORREF color_;
+     void Clip(int max_x);
   Bar() {}
   Bar(int x, int y, int dir, int width, int height, const COLORREF& color)
       : x_{x},
