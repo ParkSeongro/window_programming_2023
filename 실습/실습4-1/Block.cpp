@@ -3,14 +3,14 @@
 int Block::nBlocks = 0;
 int Block::nCrashed = 0;
 
-void Block::Clip() { // 이동 범위 제한
+void Block::Clip() {  // 이동 범위 제한
   if (x_ < min_) {
     x_ = min_;
-    xdir_ = -xdir_;    
+    xdir_ = -xdir_;
   } else if (x_ > max_) {
     x_ = max_;
-    xdir_ = -xdir_;   
-  }  
+    xdir_ = -xdir_;
+  }
 }
 
 void Block::Move() {
